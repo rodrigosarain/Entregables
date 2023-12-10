@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "title": "nike shoe",
+    "description": "nike dunk x supreme",
+    "price": 10000,
+    "img": "nike.jpg",
+    "code": "abc123",
+    "stock": 1
+  },
+  {
+    "id": 2,
+    "title": "Alexander mcqueen jeans",
+    "description": "till deth collection",
+    "price": 60000,
+    "img": "jeans.jpg",
+    "code": "abc124",
+    "stock": 2
+  }
+]

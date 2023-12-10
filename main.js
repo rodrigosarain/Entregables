@@ -1,96 +1,199 @@
+const fs = require("fs").promises;
+
 class ProductManager {
-  constructor() {
+  static ultId = 0;
+
+  constructor(path) {
     this.products = [];
+    this.path = path;
   }
 
-  generateUniqueId() {
-    return "_" + Math.random().toString(36).substr(2, 9);
-  }
+  async addProduct(nuevoObjeto) {
+    let { title, description, price, img, code, stock } = nuevoObjeto;
 
-  getProducts() {
-    return this.products;
-  }
-
-  addProduct({ title, description, price, thumbnail, code, stock }) {
-    // Verificar si el código ya existe
-    if (this.products.some((product) => product.code === code)) {
-      console.log("Ya existe un producto con el mismo código.");
+    if (!title || !description || !price || !img || !code || !stock) {
+      console.log("Campos obligatorios");
+      return;
     }
 
-    const id = this.generateUniqueId();
+    if (this.products.some((item) => item.code === code)) {
+      console.log("Code must be unike! ");
+      return;
+    }
+
     const newProduct = {
-      id,
+      id: ++ProductManager.ultId,
       title,
       description,
       price,
-      thumbnail,
+      img,
       code,
       stock,
     };
 
     this.products.push(newProduct);
-    return newProduct;
+
+    await this.guardarArchivo(this.products);
   }
 
-  getProductById(id) {
-    const product = this.products.find((product) => product.id === id);
-    if (!product) {
-      console.log("Producto no encontrado");
+  getProducts() {
+    console.log(this.products);
+  }
+
+  async getProductById(id) {
+    try {
+      const arrayProductos = await this.leerArchivo();
+      const buscado = arrayProductos.find((item) => item.id === id);
+
+      if (!buscado) {
+        console.log("Producto no encontrado");
+      } else {
+        console.log("Encontrado");
+        return buscado;
+      }
+    } catch (error) {
+      console.log("Error al leer el archivo ", error);
     }
-    return product;
+  }
+
+  async leerArchivo() {
+    try {
+      const data = await fs.readFile(this.path, "utf-8");
+      const arrayProductos = JSON.parse(data);
+      return arrayProductos;
+    } catch (error) {
+      console.log("Error al leer el archivo ", error);
+    }
+  }
+
+  async guardarArchivo(arrayProductos) {
+    try {
+      await fs.writeFile(this.path, JSON.stringify(arrayProductos, null, 2));
+    } catch (error) {
+      console.log("Error al guardar", error);
+    }
+  }
+
+  //actualizacion
+  async updateProduct(id, productoActualizado) {
+    try {
+      const arrayProductos = await this.leerArchivo();
+      const index = arrayProductos.findIndex((item) => item.id === id);
+
+      if (index !== -1) {
+        arrayProductos.splice(index, 1, productoActualizado);
+        await this.guardarArchivo(arrayProductos);
+      } else {
+        console.log("no se encontro el producto");
+      }
+    } catch (error) {
+      console.log("error al actualizar el producto", error);
+    }
+  }
+
+  //borrar productos
+  async deleteProductById(id) {
+    try {
+      const arrayProductos = await this.leerArchivo();
+      const index = arrayProductos.findIndex((item) => item.id === id);
+
+      if (index !== -1) {
+        arrayProductos.splice(index, 1);
+        await this.guardarArchivo(arrayProductos);
+        console.log("Producto eliminado correctamente");
+      } else {
+        console.log("No se encontró el producto");
+      }
+    } catch (error) {
+      console.log("Error al eliminar el producto", error);
+    }
   }
 }
 
-// Crear instancia de ProductManager
-const productManager = new ProductManager();
+//test
 
-// Obtener productos
-console.log(productManager.getProducts());
+// se agraga un producto
 
-// Agregar un nuevo producto
-const newProduct = productManager.addProduct({
-  title: "producto prueba",
-  description: "Este es un producto prueba",
-  price: 200,
-  thumbnail: "Sin imagen",
+const manage = new ProductManager("./productos.json");
+
+manage.getProducts();
+
+const shoe = {
+  title: "nike shoe",
+  description: "nike dunk x supreme",
+  price: 10000,
+  img: "nike.jpg",
   code: "abc123",
-  stock: 25,
-});
+  stock: 1,
+};
 
-// Traer productos nuevamente
-console.log(productManager.getProducts());
+manage.addProduct(shoe);
 
-// Agregar otro producto
-const anotherProduct = productManager.addProduct({
-  title: "Otro producto",
-  description: "Descripción del otro producto",
-  price: 150,
-  thumbnail: "Otra imagen",
-  code: "xyz456",
-  stock: 20,
-});
+// no tiene que haber repeticion de id
 
-// Obtener productos después de agregar otro producto
-console.log(productManager.getProducts());
+const pant = {
+  title: "Alexander mcqueen jeans",
+  description: "till deth collection",
+  price: 60000,
+  img: "jeans.jpg",
+  code: "abc124",
+  stock: 2,
+};
 
-// Intentar agregar un producto con el mismo código (error)
-try {
-  productManager.addProduct({
-    title: "producto repetido",
-    description: "Este es un producto repetido",
-    price: 250,
-    thumbnail: "Otra imagen",
-    code: "abc123",
-    stock: 15,
-  });
-} catch (error) {
-  console.error(error.message);
+manage.addProduct(pant);
+
+//repito el codigo
+
+const product = {
+  title: "nike shoe",
+  description: "nike dunk x supreme",
+  price: 10000,
+  img: "nike.jpg",
+  code: "abc125",
+  stock: 1,
+};
+
+manage.getProducts();
+
+//Se llamará al método “getProductById” y se corroborará que devuelva el producto con el id especificado, en caso de no existir, debe arrojar un error.
+
+async function testeoBusquedaPorId() {
+  const buscado = await manage.getProductById(2);
+  console.log(buscado);
 }
 
-// Obtener un producto por su ID
-try {
-  const foundProduct = productManager.getProductById(newProduct.id);
-  console.log(foundProduct);
-} catch (error) {
-  console.error(error.message);
+testeoBusquedaPorId();
+
+//Actualizacion del producto
+
+const cap = {
+  id: 1,
+  title: "nike cap",
+  description: "nike x Yankee",
+  price: 300,
+  img: "nike.jpg",
+  code: "abc122",
+  stock: 4,
+};
+
+async function testRefresh() {
+  await manage.updateProduct(1, cap);
 }
+
+testRefresh();
+
+//test eliminar producto
+
+const tee = {
+  title: "Bapesta T-shirt",
+  description: "longlive Nigo",
+  price: 400,
+  img: "bapesta.jpg",
+  code: "abc129",
+  stock: 10,
+};
+
+manage.addProduct(tee);
+
+const productIdToDelete = 3;
+manage.deleteProductById(productIdToDelete);
